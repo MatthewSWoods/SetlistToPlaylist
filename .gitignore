@@ -402,3 +402,5 @@ FodyWeavers.xsd
 
 # Additional Projects in Repo
 SetlistToPlaylist.Client.Angular/
+SetlistToPlaylist.Client.Svelte/
+SetlistToPlaylist.Client.Vue/
