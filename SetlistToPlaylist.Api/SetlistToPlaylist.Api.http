@@ -1,0 +1,6 @@
+@SetlistToPlaylist.Api_HostAddress = http://localhost:8082
+
+GET {{SetlistToPlaylist.Api_HostAddress}}/setlisttoplaylist/
+Accept: application/json
+
+###
