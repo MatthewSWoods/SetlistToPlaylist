@@ -115,8 +115,7 @@ namespace SetlistToPlaylist.Api.RestApiClients
             return (requestUrl, encodedState);
         }
         
-        // Helper method to generate a random string for state
-        private static string GenerateRandomString(int length)
+        public static string GenerateRandomString(int length)
         {
             using var rng = RandomNumberGenerator.Create();
             var randomBytes = new byte[length];

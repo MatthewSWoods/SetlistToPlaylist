@@ -65,7 +65,7 @@ namespace SetlistToPlaylist.Api.RestApiClients
             response.EnsureSuccessStatusCode();
             var contentString = await response.Content.ReadAsStringAsync();
  
-            return JsonConvert.DeserializeObject<SpotifyPlaylist>(contentString) ?? throw new SerializationException($"unableto parse response content: {contentString}");
+            return JsonConvert.DeserializeObject<SpotifyPlaylist>(contentString) ?? throw new SerializationException($"unable to parse response content: {contentString}");
         }
 
         public async Task<(string[], string[])> FindSpotifyTracksFromSetlistAsync(SpotifyAuth auth, Setlist setlist)
