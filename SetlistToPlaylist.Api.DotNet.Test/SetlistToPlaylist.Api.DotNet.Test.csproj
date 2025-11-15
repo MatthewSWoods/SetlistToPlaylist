@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SetlistToPlaylist.Api\SetlistToPlaylist.Api.csproj" />
+    <ProjectReference Include="..\SetlistToPlaylist.Api\SetlistToPlaylist.Api.CSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

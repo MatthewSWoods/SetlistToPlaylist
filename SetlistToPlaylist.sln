@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SetlistToPlaylist.Api", "SetlistToPlaylist.Api\SetlistToPlaylist.Api.csproj", "{EC839FDB-738A-4695-9CA3-C9A72C92E7BD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SetlistToPlaylist.Api.CSharp", "SetlistToPlaylist.Api\SetlistToPlaylist.Api.CSharp.csproj", "{EC839FDB-738A-4695-9CA3-C9A72C92E7BD}"
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "setlisttoplaylist.client.react", "SetlistToPlaylist.Client.React\setlisttoplaylist.client.react.esproj", "{35DC2087-418F-4450-BD65-E20282B8A473}"
 EndProject
