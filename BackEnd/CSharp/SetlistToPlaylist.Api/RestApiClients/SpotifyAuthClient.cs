@@ -91,6 +91,7 @@ namespace SetlistToPlaylist.Api.RestApiClients
 
         public string CreateOAuthRequestUrl()
         {
+            _logger.LogInformation("RedirectUri: {_redirectUri}", _apiSettings.Value.SpotifyRedirectUri);
             var encodedRedirect = Uri.EscapeDataString(_apiSettings.Value.SpotifyRedirectUri);
             var encodedScope = Uri.EscapeDataString("user-read-private user-read-email playlist-modify-private playlist-modify-public playlist-read-private playlist-read-collaborative user-library-modify user-library-read");
 

@@ -30,6 +30,7 @@ public class AuthController : Controller
         var authUrlStateless =  _authClient.CreateOAuthRequestUrl();
         var (authUrl, state) = _authClient.AddStateToOAuthRequestUrl(authUrlStateless);
         
+        _logger.LogInformation($"Redirecting to Spotify Auth URL: {authUrl}");
         HttpContext.Session.SetString("spotify_auth_state", state);
         
         return Redirect(authUrl);

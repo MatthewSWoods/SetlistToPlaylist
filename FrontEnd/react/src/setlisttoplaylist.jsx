@@ -12,7 +12,7 @@ function SetlistToPlaylist() {
     const [playlistLoading, setPlaylistLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false); // For toggling login/logout
 
-    const apiBaseUrl = "https://localhost:5001/"
+    const apiBaseUrl = "https://127.0.0.1:5001/"
     const authStatusEndpoint = apiBaseUrl + 'auth/status';
     const loginEndpoint = apiBaseUrl + 'auth/login';
     const logoutEndpoint = apiBaseUrl + 'auth/logout';
