@@ -98,7 +98,7 @@ namespace SetlistToPlaylist.Api.RestApiClients
                 if (trackResponse.Tracks!.Items!.Any())
                 {
                     var foundTrack = trackResponse.Tracks!.Items!.First();
-                    _logger.LogInformation($"Found track: {foundTrack.Name} by {foundTrack.Artists!.First().Name}, " +
+                    _logger.LogInformation($"Found track: {foundTrack.Name!} by {foundTrack.Artists!.First().Name}, " +
                         $"Appending song uri ({foundTrack.Uri}) to results");
                     spotifyTrackUris.Add(trackResponse.Tracks!.Items!.First().Uri!);
                 }

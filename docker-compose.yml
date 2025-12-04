@@ -1,10 +1,10 @@
 services:
 
-  setlisttoplaylist.api:
+  setlisttoplaylist.api.csharp:
     image: ${DOCKER_REGISTRY-}setlisttoplaylistapi
     build:
       context: .
-      dockerfile: SetlistToPlaylist.Api/Dockerfile
+      dockerfile: Backend/CSharp/SetlistToPlaylist.Api/Dockerfile
     environment:
         ASPNETCORE_HTTPS_PORTS: "5001"
     ports:
@@ -13,11 +13,11 @@ services:
   setlisttoplaylist.client.react:
     image: setlisttoplaylistclientreact
     build:
-      context: ./setlisttoplaylist.client.react
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: FrontEnd/react/Dockerfile
     environment:
         - VITE_API_BASE_URL="https://localhost:5001/"
     ports:
         - "3001:3001"
     depends_on: 
-        - setlisttoplaylist.api
+        - setlisttoplaylist.api.csharp

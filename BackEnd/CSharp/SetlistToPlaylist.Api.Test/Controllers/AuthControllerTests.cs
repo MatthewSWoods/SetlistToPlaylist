@@ -71,7 +71,7 @@ namespace SetlistToPlaylistTest.Api.Controllers
         public async Task Callback_InvalidCode_ReturnsBadRequest()
         {
             // Act
-            var result = await _controller.Callback("", "12345") as BadRequestObjectResult;
+            var result = await _controller.Callback(null, "12345", string.Empty) as BadRequestObjectResult;
 
             // Assert
             Assert.NotNull(result);
@@ -85,7 +85,7 @@ namespace SetlistToPlaylistTest.Api.Controllers
             _controller.HttpContext.Session.SetString("spotify_auth_state", "67890");
 
             // Act
-            var result = await _controller.Callback("valid-code", "12345") as BadRequestObjectResult;
+            var result = await _controller.Callback("valid-code", "12345", string.Empty) as BadRequestObjectResult;
 
             // Assert
             Assert.NotNull(result);
@@ -103,14 +103,12 @@ namespace SetlistToPlaylistTest.Api.Controllers
                 .ReturnsAsync(token);
 
             // Act
-            var result = await _controller.Callback("valid-code", "12345") as RedirectResult;
+            var result = await _controller.Callback("valid-code", "12345", string.Empty) as RedirectResult;
 
             // Assert
             Assert.NotNull(result);
             Assert.Equal("https://test.com", result.Url);
-            Assert.Equal(
-                JsonConvert.SerializeObject(token),
-                _controller.HttpContext.Session.GetString("spotify_auth_token")
+            Assert.Equal(JsonConvert.SerializeObject(token), _controller.HttpContext.Session.GetString("spotify_auth_token")
             );
         }
 

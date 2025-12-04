@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SetlistToPlaylist.Api\SetlistToPlaylist.Api.CSharp.csproj" />
+    <ProjectReference Include="..\SetlistToPlaylist.Api\SetlistToPlaylist.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

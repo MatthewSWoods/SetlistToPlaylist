@@ -401,6 +401,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Additional Projects in Repo
-SetlistToPlaylist.Client.Angular/
-SetlistToPlaylist.Client.Svelte/
-SetlistToPlaylist.Client.Vue/
+FrontEnd/angular/
+FrontEnd/svelte/
+Frontend/vue/
+Backend/Python/

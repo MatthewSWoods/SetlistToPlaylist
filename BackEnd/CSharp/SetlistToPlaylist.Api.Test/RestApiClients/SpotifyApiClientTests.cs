@@ -170,7 +170,7 @@ namespace SetlistToPlaylistTest.Api.RestApiClients
                     {
                         Content = new StringContent(JsonConvert.SerializeObject(new SpotifySearchTracksResponse
                         {
-                            Tracks = new Tracks { Items = [new Item { Uri = expectedTrackUri }] }
+                            Tracks = new Tracks { Items = [new Item { Name = "Song1", Uri = expectedTrackUri }] }
                         }))
                     };
                 }
