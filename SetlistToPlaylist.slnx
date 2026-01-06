@@ -1,0 +1,29 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ServiceDefaults/SetlistToPlaylist.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Backend/" />
+  <Folder Name="/src/Backend/Api/">
+    <Project Path="src/Backend/Api.Tests/SetlistToPlaylist.ApiService.Tests.csproj" />
+    <Project Path="src/Backend/Api/SetlistToPlaylist.ApiService.csproj" />
+  </Folder>
+  <Folder Name="/src/Backend/Modules/" />
+  <Folder Name="/src/Backend/Modules/SetlistFm/">
+    <Project Path="src/Backend/Modules/SetlistFm/SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions/SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.csproj" Id="51f8e331-188c-437d-bf0c-a45220c66c43" />
+    <Project Path="src/Backend/Modules/SetlistFm/SetlistToPlaylist.Backend.Modules.SetlistFm.Tests/SetlistToPlaylist.Backend.Modules.SetlistFm.Tests.csproj" Id="6e490615-ca6b-4c08-aae7-46c4c5755523" />
+    <Project Path="src/Backend/Modules/SetlistFm/SetlistToPlaylist.Backend.Modules.SetlistFm/SetlistToPlaylist.Backend.Modules.SetlistFm.csproj" Id="2de3448c-9710-4436-9b95-fbdb434f6558" />
+  </Folder>
+  <Folder Name="/src/Backend/Modules/Spotify/">
+    <Project Path="src/Backend/Modules/Spotify/SetlistToPlaylist.Backend.Modules.Spotify.Abstractions/SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.csproj" Id="b3d7dc64-eaff-4644-937c-7cbb5c9ee90f" />
+    <Project Path="src/Backend/Modules/Spotify/SetlistToPlaylist.Backend.Modules.Spotify.Tests/SetlistToPlaylist.Backend.Modules.Spotify.Tests.csproj" Id="2728ecdb-a937-4b6a-bd4d-642f19ac2bdd" />
+    <Project Path="src/Backend/Modules/Spotify/SetlistToPlaylist.Backend.Modules.Spotify/SetlistToPlaylist.Backend.Modules.Spotify.csproj" Id="ed9ac141-a106-4df7-9df7-b85b0574b6ca" />
+  </Folder>
+  <Folder Name="/src/Frontend/">
+    <Project Path="src/Frontend/Web.Tests/SetlistToPlaylist.Web.Tests.csproj" />
+    <Project Path="src/Frontend/Web/SetlistToPlaylist.Web.csproj" />
+  </Folder>
+  <Project Path="src/AppHost/SetlistToPlaylist.AppHost.csproj" />
+</Solution>
