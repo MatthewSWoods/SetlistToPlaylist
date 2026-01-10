@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path="README.md" />
+    <File Path="src/Docs/SetlistToPlaylist_TechnicalSpecificationDcocument.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/ServiceDefaults/SetlistToPlaylist.ServiceDefaults.csproj" />
