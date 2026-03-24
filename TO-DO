@@ -9,3 +9,5 @@
 - Update main readme 
 - QR code & Embedded playlist in FE
 - use TimeProvider over DateTime.Now()
+- XunitV3
+- Treat warnings as errors
