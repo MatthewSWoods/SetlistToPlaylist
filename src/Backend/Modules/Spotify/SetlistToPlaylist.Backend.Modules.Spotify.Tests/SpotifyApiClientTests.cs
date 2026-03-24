@@ -29,23 +29,21 @@ public sealed class SpotifyApiClientTests
 
         var result = await BuildClient(handler).SearchTrackAsync("Creep", "Radiohead", AccessToken);
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal("spotify:track:abc123", result.Value);
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.ShouldBe("spotify:track:abc123");
     }
 
     [Fact]
     public async Task SearchTrackAsync_FirstPassEmpty_SecondPassFindsTrack_ReturnsUri()
     {
         using var handler = new MockHttpMessageHandler();
-        // First call (with artist) — no results
         handler.Expect($"{BaseUrl}search*").Respond(HttpStatusCode.OK, "application/json", EmptySearchResponse);
-        // Second call (without artist) — found
         handler.Expect($"{BaseUrl}search*").Respond(HttpStatusCode.OK, "application/json", BuildSearchResponse("spotify:track:xyz789"));
 
         var result = await BuildClient(handler).SearchTrackAsync("Creep", "Radiohead", AccessToken);
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal("spotify:track:xyz789", result.Value);
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.ShouldBe("spotify:track:xyz789");
         handler.VerifyNoOutstandingExpectation();
     }
 
@@ -57,8 +55,8 @@ public sealed class SpotifyApiClientTests
 
         var result = await BuildClient(handler).SearchTrackAsync("Unknown Song", "Unknown Artist", AccessToken);
 
-        Assert.True(result.IsSuccess);
-        Assert.Null(result.Value);
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.ShouldBeNull();
     }
 
     [Fact]
@@ -69,8 +67,8 @@ public sealed class SpotifyApiClientTests
 
         var result = await BuildClient(handler).SearchTrackAsync("Creep", "Radiohead", AccessToken);
 
-        Assert.True(result.IsFailed);
-        Assert.Equal("spotify_unauthorized", result.Errors[0].Message);
+        result.IsFailed.ShouldBeTrue();
+        result.Errors[0].Message.ShouldBe("spotify_unauthorized");
     }
 
     [Fact]
@@ -81,7 +79,7 @@ public sealed class SpotifyApiClientTests
 
         var result = await BuildClient(handler).SearchTrackAsync("Creep", "Radiohead", AccessToken);
 
-        Assert.True(result.IsFailed);
+        result.IsFailed.ShouldBeTrue();
     }
 
     [Theory]
@@ -92,7 +90,6 @@ public sealed class SpotifyApiClientTests
     public async Task SearchTrackAsync_NormalizesSongName_UsesNormalizedInQuery(
         string rawName, string normalizedName)
     {
-        // Capture the actual request URL to verify normalization was applied
         string? capturedUrl = null;
         using var handler = new MockHttpMessageHandler();
         handler.When($"{BaseUrl}search*")
@@ -108,9 +105,8 @@ public sealed class SpotifyApiClientTests
 
         await BuildClient(handler).SearchTrackAsync(rawName, "Radiohead", AccessToken);
 
-        Assert.NotNull(capturedUrl);
-        // The normalized name should appear in the query; raw suffix should not
-        Assert.Contains(Uri.EscapeDataString(normalizedName), capturedUrl, StringComparison.OrdinalIgnoreCase);
+        capturedUrl.ShouldNotBeNull();
+        capturedUrl!.ShouldContain(Uri.EscapeDataString(normalizedName));
     }
 
     // --- CreatePlaylist ---
@@ -134,9 +130,9 @@ public sealed class SpotifyApiClientTests
         var result = await BuildClient(handler).CreatePlaylistAsync(
             userId, "Test Playlist", "A description", false, AccessToken);
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal("playlist123", result.Value.PlaylistId);
-        Assert.Equal("Test Playlist", result.Value.PlaylistName);
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.PlaylistId.ShouldBe("playlist123");
+        result.Value.PlaylistName.ShouldBe("Test Playlist");
     }
 
     // --- AddTracksToPlaylist ---
@@ -161,8 +157,8 @@ public sealed class SpotifyApiClientTests
 
         var result = await BuildClient(handler).AddTracksToPlaylistAsync("playlist123", uris, AccessToken);
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(1, requestCount);
+        result.IsSuccess.ShouldBeTrue();
+        requestCount.ShouldBe(1);
     }
 
     [Fact]
@@ -185,8 +181,8 @@ public sealed class SpotifyApiClientTests
 
         var result = await BuildClient(handler).AddTracksToPlaylistAsync("playlist123", uris, AccessToken);
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(2, requestCount); // 100 + 1
+        result.IsSuccess.ShouldBeTrue();
+        requestCount.ShouldBe(2); // 100 + 1
     }
 
     [Fact]
@@ -199,7 +195,7 @@ public sealed class SpotifyApiClientTests
         var result = await BuildClient(handler)
             .AddTracksToPlaylistAsync("playlist123", ["spotify:track:1"], AccessToken);
 
-        Assert.True(result.IsFailed);
+        result.IsFailed.ShouldBeTrue();
     }
 
     // --- Helpers ---

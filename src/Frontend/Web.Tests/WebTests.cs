@@ -7,19 +7,17 @@ public class WebTests
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task GetWebResourceRootReturnsOkStatusCode()
+    public async Task WebFrontend_RootPath_ReturnsOk()
     {
-        // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.SetlistToPlaylist_AppHost>(cancellationToken);
+        var appHost = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.SetlistToPlaylist_AppHost>(cancellationToken);
         appHost.Services.AddLogging(logging =>
         {
             logging.SetMinimumLevel(LogLevel.Debug);
-            // Override the logging filters from the app's configuration
             logging.AddFilter(appHost.Environment.ApplicationName, LogLevel.Debug);
             logging.AddFilter("Aspire.", LogLevel.Debug);
-            // To output logs to the xUnit.net ITestOutputHelper, consider adding a package from https://www.nuget.org/packages?q=xunit+logging
         });
         appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
         {
@@ -29,12 +27,95 @@ public class WebTests
         await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
         await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
 
-        // Act
         var httpClient = app.CreateHttpClient("webfrontend");
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        await app.ResourceNotifications
+            .WaitForResourceHealthyAsync("webfrontend", cancellationToken)
+            .WaitAsync(DefaultTimeout, cancellationToken);
+
         var response = await httpClient.GetAsync("/", cancellationToken);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ApiService_HealthEndpoint_ReturnsHealthy()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var appHost = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.SetlistToPlaylist_AppHost>(cancellationToken);
+        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        {
+            clientBuilder.AddStandardResilienceHandler();
+        });
+
+        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+
+        var httpClient = app.CreateHttpClient("apiservice");
+        await app.ResourceNotifications
+            .WaitForResourceHealthyAsync("apiservice", cancellationToken)
+            .WaitAsync(DefaultTimeout, cancellationToken);
+
+        var response = await httpClient.GetAsync("/health", cancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ApiService_AuthStatus_Unauthenticated_ReturnsFalse()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var appHost = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.SetlistToPlaylist_AppHost>(cancellationToken);
+        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        {
+            clientBuilder.AddStandardResilienceHandler();
+        });
+
+        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+
+        var httpClient = app.CreateHttpClient("apiservice");
+        await app.ResourceNotifications
+            .WaitForResourceHealthyAsync("apiservice", cancellationToken)
+            .WaitAsync(DefaultTimeout, cancellationToken);
+
+        var response = await httpClient.GetAsync("/auth/status", cancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        body.ShouldContain("false");
+    }
+
+    [Fact]
+    public async Task ApiService_GeneratePlaylist_WithoutSession_ReturnsUnauthorized()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var appHost = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.SetlistToPlaylist_AppHost>(cancellationToken);
+        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        {
+            clientBuilder.AddStandardResilienceHandler();
+        });
+
+        await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+
+        var httpClient = app.CreateHttpClient("apiservice");
+        await app.ResourceNotifications
+            .WaitForResourceHealthyAsync("apiservice", cancellationToken)
+            .WaitAsync(DefaultTimeout, cancellationToken);
+
+        var payload = new StringContent(
+            """{"setlistUrl":"https://www.setlist.fm/setlist/radiohead/2016/roundhouse-63eb7e6b.html","connectionId":"test-conn"}""",
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await httpClient.PostAsync("/api/v1/setlist/generate", payload, cancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

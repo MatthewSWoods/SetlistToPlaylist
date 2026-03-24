@@ -4,6 +4,7 @@ using NSubstitute;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.Clients;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.DTOs;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Services;
+using SetlistToPlaylist.Backend.Modules.SetlistFm.Tests.Builders;
 
 namespace SetlistToPlaylist.Backend.Modules.SetlistFm.Tests;
 
@@ -29,14 +30,14 @@ public sealed class SetlistFmServiceTests
         "abcdef01")]
     public async Task GetSetlistAsync_ValidUrl_ExtractsCorrectIdAndCallsClient(string url, string expectedId)
     {
-        var setlist = new SetlistDto { Id = expectedId };
+        var setlist = new SetlistDtoBuilder().WithId(expectedId).Build();
         _client.GetSetlistByIdAsync(expectedId, Arg.Any<CancellationToken>())
             .Returns(Result.Ok(setlist));
 
         var result = await _sut.GetSetlistAsync(url);
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(expectedId, result.Value.Id);
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Id.ShouldBe(expectedId);
         await _client.Received(1).GetSetlistByIdAsync(expectedId, Arg.Any<CancellationToken>());
     }
 
@@ -48,7 +49,7 @@ public sealed class SetlistFmServiceTests
     {
         var result = await _sut.GetSetlistAsync(url);
 
-        Assert.True(result.IsFailed);
+        result.IsFailed.ShouldBeTrue();
         await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, default);
     }
 
@@ -60,7 +61,7 @@ public sealed class SetlistFmServiceTests
     {
         var result = await _sut.GetSetlistAsync(url);
 
-        Assert.True(result.IsFailed);
+        result.IsFailed.ShouldBeTrue();
         await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, default);
     }
 
@@ -69,7 +70,7 @@ public sealed class SetlistFmServiceTests
     {
         var result = await _sut.GetSetlistAsync("https://www.setlist.fm/artist/radiohead.html");
 
-        Assert.True(result.IsFailed);
+        result.IsFailed.ShouldBeTrue();
         await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, default);
     }
 
@@ -82,7 +83,7 @@ public sealed class SetlistFmServiceTests
         var result = await _sut.GetSetlistAsync(
             "https://www.setlist.fm/setlist/radiohead/2016/roundhouse-63eb7e6b.html");
 
-        Assert.True(result.IsFailed);
-        Assert.Contains("not found", result.Errors[0].Message);
+        result.IsFailed.ShouldBeTrue();
+        result.Errors[0].Message.ShouldContain("not found");
     }
 }

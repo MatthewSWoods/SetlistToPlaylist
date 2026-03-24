@@ -2,8 +2,8 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using RichardSzalay.MockHttp;
-using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.DTOs;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Clients;
+using SetlistToPlaylist.Backend.Modules.SetlistFm.Tests.Builders;
 
 namespace SetlistToPlaylist.Backend.Modules.SetlistFm.Tests;
 
@@ -11,18 +11,6 @@ public sealed class SetlistFmClientTests
 {
     private const string BaseUrl = "https://api.setlist.fm/rest/1.0/";
     private const string SetlistId = "63eb7e6b";
-
-    private static readonly SetlistDto SampleSetlist = new()
-    {
-        Id = SetlistId,
-        EventDate = "15-06-2016",
-        Artist = new ArtistDto { Name = "Radiohead" },
-        Venue = new VenueDto { Name = "Roundhouse", City = new CityDto { Name = "London" } },
-        Sets = new SetsDto
-        {
-            Set = [new SetDto { Song = [new SongDto { Name = "Creep" }, new SongDto { Name = "Karma Police" }] }]
-        }
-    };
 
     private static SetlistFmClient BuildClient(MockHttpMessageHandler handler)
     {
@@ -34,16 +22,22 @@ public sealed class SetlistFmClientTests
     [Fact]
     public async Task GetSetlistByIdAsync_SuccessResponse_ReturnsSetlist()
     {
-        var json = JsonSerializer.Serialize(SampleSetlist);
+        var setlist = new SetlistDtoBuilder()
+            .WithId(SetlistId)
+            .WithArtist("Radiohead")
+            .WithSongNames("Creep", "Karma Police")
+            .Build();
+        var json = JsonSerializer.Serialize(setlist);
+
         using var handler = new MockHttpMessageHandler();
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Respond(HttpStatusCode.OK, "application/json", json);
 
         var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(SetlistId, result.Value.Id);
-        Assert.Equal("Radiohead", result.Value.Artist?.Name);
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Id.ShouldBe(SetlistId);
+        result.Value.Artist?.Name.ShouldBe("Radiohead");
     }
 
     [Fact]
@@ -55,8 +49,8 @@ public sealed class SetlistFmClientTests
 
         var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
 
-        Assert.True(result.IsFailed);
-        Assert.Contains("not found", result.Errors[0].Message, StringComparison.OrdinalIgnoreCase);
+        result.IsFailed.ShouldBeTrue();
+        result.Errors[0].Message.ShouldContain("not found");
     }
 
     [Theory]
@@ -71,7 +65,7 @@ public sealed class SetlistFmClientTests
 
         var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
 
-        Assert.True(result.IsFailed);
+        result.IsFailed.ShouldBeTrue();
     }
 
     [Fact]
@@ -83,8 +77,8 @@ public sealed class SetlistFmClientTests
 
         var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
 
-        Assert.True(result.IsFailed);
-        Assert.Contains("Failed to contact", result.Errors[0].Message);
+        result.IsFailed.ShouldBeTrue();
+        result.Errors[0].Message.ShouldContain("Failed to contact");
     }
 
     [Fact]
@@ -96,23 +90,29 @@ public sealed class SetlistFmClientTests
 
         var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
 
-        Assert.True(result.IsFailed);
+        result.IsFailed.ShouldBeTrue();
     }
 
     [Fact]
     public async Task GetSetlistByIdAsync_SongsAreDeserializedCorrectly()
     {
-        var json = JsonSerializer.Serialize(SampleSetlist);
+        var setlist = new SetlistDtoBuilder()
+            .WithId(SetlistId)
+            .WithSongNames("Creep", "Karma Police")
+            .Build();
+        var json = JsonSerializer.Serialize(setlist);
+
         using var handler = new MockHttpMessageHandler();
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Respond(HttpStatusCode.OK, "application/json", json);
 
         var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
 
-        Assert.True(result.IsSuccess);
+        result.IsSuccess.ShouldBeTrue();
         var songs = result.Value.Sets?.Set?.SelectMany(s => s.Song ?? []).ToArray();
-        Assert.Equal(2, songs?.Length);
-        Assert.Equal("Creep", songs![0].Name);
-        Assert.Equal("Karma Police", songs[1].Name);
+        songs.ShouldNotBeNull();
+        songs.Length.ShouldBe(2);
+        songs[0].Name.ShouldBe("Creep");
+        songs[1].Name.ShouldBe("Karma Police");
     }
 }
