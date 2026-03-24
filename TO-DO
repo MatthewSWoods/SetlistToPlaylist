@@ -3,11 +3,11 @@
 - Finish adding tests 
     - Must use shouldly
     - Use builders & fixtures where appropriate
+    - XunitV3
 - Add swagger
 - Http cert signing
 - Remove empty & redundant files
 - Update main readme 
 - QR code & Embedded playlist in FE
 - use TimeProvider over DateTime.Now()
-- XunitV3
 - Treat warnings as errors
