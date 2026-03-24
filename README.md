@@ -134,4 +134,4 @@ src/
 - Spotify tokens are stored **server-side in Redis only** — they never appear in API responses or request bodies
 - Songs marked as `Tape` (backing tracks) in the setlist are silently skipped
 - Track search uses a two-pass strategy: first with artist name, then title-only as a fallback
-- Playlists are named `{Artist} @ {Venue} — {dd MMM yyyy}` and created as private by default
+- Playlists are named `{yyyy} {Artist} @ {Venue}` and created as private by default

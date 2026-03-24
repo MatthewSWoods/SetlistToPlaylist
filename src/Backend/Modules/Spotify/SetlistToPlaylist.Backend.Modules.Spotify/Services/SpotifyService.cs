@@ -18,6 +18,7 @@ public sealed class SpotifyService : ISpotifyService
     private readonly ISpotifyAuthClient _authClient;
     private readonly IDistributedCache _cache;
     private readonly ILogger<SpotifyService> _logger;
+    private readonly TimeProvider _timeProvider;
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -25,12 +26,14 @@ public sealed class SpotifyService : ISpotifyService
         ISpotifyApiClient apiClient,
         ISpotifyAuthClient authClient,
         IDistributedCache cache,
-        ILogger<SpotifyService> logger)
+        ILogger<SpotifyService> logger,
+        TimeProvider timeProvider)
     {
         _apiClient = apiClient;
         _authClient = authClient;
         _cache = cache;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Result<string>> GetCurrentUserIdAsync(string sessionId, CancellationToken ct = default)
@@ -88,7 +91,7 @@ public sealed class SpotifyService : ISpotifyService
             ct.ThrowIfCancellationRequested();
 
             // Refresh token if needed
-            if (auth.IsTokenExpired())
+            if (auth.IsTokenExpired(_timeProvider))
             {
                 var refreshResult = await _authClient.RefreshTokenAsync(auth.RefreshToken!, ct);
                 if (refreshResult.IsFailed)
@@ -162,9 +165,9 @@ public sealed class SpotifyService : ISpotifyService
     private async Task<Result<AuthDto>> GetValidTokenAsync(string sessionId, CancellationToken ct)
     {
         var auth = await GetStoredTokenAsync(sessionId, ct);
-        if (auth is null) return Result.Fail("No Spotify token found — user must authenticate");
+        if (auth is null) return Result.Fail("No Spotify token found - user must authenticate");
 
-        if (auth.IsTokenExpired())
+        if (auth.IsTokenExpired(_timeProvider))
         {
             _logger.LogInformation("Refreshing expired Spotify token for session {SessionId}", sessionId);
             var refreshResult = await _authClient.RefreshTokenAsync(auth.RefreshToken!, ct);
@@ -187,7 +190,7 @@ public sealed class SpotifyService : ISpotifyService
     {
         var json = JsonSerializer.Serialize(auth, JsonOptions);
         var expiry = auth.ExpiryTime.HasValue
-            ? auth.ExpiryTime.Value - DateTime.UtcNow
+            ? auth.ExpiryTime.Value - _timeProvider.GetUtcNow().UtcDateTime
             : TimeSpan.FromHours(1);
         await _cache.SetStringAsync(TokenKey(sessionId), json,
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiry }, ct);
@@ -195,22 +198,22 @@ public sealed class SpotifyService : ISpotifyService
 
     private static string TokenKey(string sessionId) => $"spotify_auth:{sessionId}";
 
-    private static string BuildPlaylistName(SetlistDto setlist)
+    private string BuildPlaylistName(SetlistDto setlist)
     {
         if (!DateTime.TryParseExact(setlist.EventDate, "dd-MM-yyyy",
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.None, out var date))
-            date = DateTime.UtcNow;
+            date = _timeProvider.GetUtcNow().UtcDateTime;
 
-        return $"{setlist.Artist?.Name} @ {setlist.Venue?.Name} \u2014 {date:dd MMM yyyy}";
+        return $"{date:yyyy} {setlist.Artist?.Name} @ {setlist.Venue?.Name}";
     }
 
-    private static string BuildPlaylistDescription(SetlistDto setlist)
+    private string BuildPlaylistDescription(SetlistDto setlist)
     {
         if (!DateTime.TryParseExact(setlist.EventDate, "dd-MM-yyyy",
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.None, out var date))
-            date = DateTime.UtcNow;
+            date = _timeProvider.GetUtcNow().UtcDateTime;
 
         return $"Live at {setlist.Venue?.Name}, {setlist.Venue?.City?.Name} on {date:dd-MM-yyyy}. Setlist: {setlist.Url}";
     }

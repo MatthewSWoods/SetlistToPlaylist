@@ -23,6 +23,8 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromHours(2);
 });
 
+builder.Services.AddSingleton(TimeProvider.System);
+
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy =
         System.Text.Json.JsonNamingPolicy.CamelCase);

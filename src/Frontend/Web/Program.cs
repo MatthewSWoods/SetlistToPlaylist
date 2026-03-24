@@ -15,6 +15,13 @@ builder.Services.AddHttpClient<SetlistToPlaylistApiClient>(client =>
     client.BaseAddress = new Uri("https+http://apiservice");
 });
 
+// Named client used by HubConnectionBuilder — service discovery resolves "apiservice"
+// via IHttpMessageHandlerFactory (https+http:// is not supported by SignalR's transport layer)
+builder.Services.AddHttpClient("apiservice-hub", client =>
+{
+    client.BaseAddress = new Uri("https://apiservice");
+});
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

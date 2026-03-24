@@ -2,5 +2,5 @@
 
 - Add swagger
 - QR code & Embedded playlist in FE
-- use TimeProvider over DateTime.Now()
 - Treat warnings as errors
+- FE ui/ux

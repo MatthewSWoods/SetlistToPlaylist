@@ -5,6 +5,7 @@
 @using SetlistToPlaylist.Web.Clients
 @inject SetlistToPlaylistApiClient ApiClient
 @inject NavigationManager Navigation
+@inject IHttpMessageHandlerFactory MessageHandlerFactory
 @implements IAsyncDisposable
 
 <PageTitle>Setlist to Playlist</PageTitle>
@@ -136,7 +137,13 @@
         _isAuthenticated = await ApiClient.IsAuthenticatedAsync();
 
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("https+http://apiservice/hubs/playlist"))
+            .WithUrl("https://apiservice/hubs/playlist", options =>
+            {
+                // IHttpMessageHandlerFactory provides the Aspire service-discovery-aware
+                // handler pipeline. HubConnectionBuilder does not support the https+http://
+                // scheme directly, so we route through the named client instead.
+                options.HttpMessageHandlerFactory = _ => MessageHandlerFactory.CreateHandler("apiservice-hub");
+            })
             .WithAutomaticReconnect()
             .Build();
 

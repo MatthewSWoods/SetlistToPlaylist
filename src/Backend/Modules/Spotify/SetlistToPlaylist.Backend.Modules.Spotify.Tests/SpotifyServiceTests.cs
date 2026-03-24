@@ -28,7 +28,7 @@ public sealed class SpotifyServiceTests
     public SpotifyServiceTests()
     {
         _sut = new SpotifyService(_apiClient, _authClient, _cache,
-            NullLogger<SpotifyService>.Instance);
+            NullLogger<SpotifyService>.Instance, TimeProvider.System);
     }
 
     // --- GetCurrentUserIdAsync ---

@@ -20,17 +20,20 @@ public sealed class AuthController : ControllerBase
     private readonly IDistributedCache _cache;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public AuthController(
         ISpotifyAuthClient authClient,
         IDistributedCache cache,
         IConfiguration configuration,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        TimeProvider timeProvider)
     {
         _authClient = authClient;
         _cache = cache;
         _configuration = configuration;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     [HttpGet("login")]
@@ -116,7 +119,7 @@ public sealed class AuthController : ControllerBase
         var auth = tokenResult.Value;
         var json = System.Text.Json.JsonSerializer.Serialize(auth);
         var expiry = auth.ExpiryTime.HasValue
-            ? auth.ExpiryTime.Value - DateTime.UtcNow
+            ? auth.ExpiryTime.Value - _timeProvider.GetUtcNow().UtcDateTime
             : TimeSpan.FromHours(1);
 
         await _cache.SetStringAsync(

@@ -1,69 +1,72 @@
+using Microsoft.Extensions.Time.Testing;
+using SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.DTOs;
 using SetlistToPlaylist.Backend.Modules.Spotify.Extensions;
-using SetlistToPlaylist.Backend.Modules.Spotify.Tests.Builders;
 
 namespace SetlistToPlaylist.Backend.Modules.Spotify.Tests;
 
 public sealed class AuthExtensionsTests
 {
+    private static readonly DateTimeOffset FixedNow =
+        new(2024, 6, 15, 12, 0, 0, TimeSpan.Zero);
+
     [Fact]
-    public void SetExpiryTime_SetsExpiryToUtcNowPlusExpiresInMinusBuffer()
+    public void SetExpiryTime_SetsExpiryToNowPlusExpiresInMinusBuffer()
     {
-        var auth = new AuthDtoBuilder().Build();
-        auth.ExpiresIn = 3600;
-        var before = DateTime.UtcNow;
+        var timeProvider = new FakeTimeProvider(FixedNow);
+        var auth = new AuthDto { ExpiresIn = 3600 };
 
-        auth.SetExpiryTime();
+        auth.SetExpiryTime(timeProvider);
 
-        var after = DateTime.UtcNow;
-        // Buffer is 60s, so expected window is [before + 3540s, after + 3540s]
-        auth.ExpiryTime.ShouldNotBeNull();
-        auth.ExpiryTime!.Value.ShouldBeGreaterThanOrEqualTo(before.AddSeconds(3540));
-        auth.ExpiryTime!.Value.ShouldBeLessThanOrEqualTo(after.AddSeconds(3540));
+        // Buffer is 60s: expected = FixedNow + 3600s - 60s = FixedNow + 3540s
+        auth.ExpiryTime.ShouldBe(FixedNow.UtcDateTime.AddSeconds(3540));
     }
 
     [Fact]
     public void SetExpiryTime_NullExpiresIn_TokenIsImmediatelyExpired()
     {
-        var auth = new AuthDtoBuilder().Build();
-        auth.ExpiresIn = null;
+        var timeProvider = new FakeTimeProvider(FixedNow);
+        var auth = new AuthDto { ExpiresIn = null };
 
-        auth.SetExpiryTime();
+        auth.SetExpiryTime(timeProvider);
 
-        // ExpiresIn ?? 0 means 0 - 60s = already expired
-        auth.IsTokenExpired().ShouldBeTrue();
+        // ExpiresIn ?? 0 minus 60s buffer = -60s from now, already expired
+        auth.IsTokenExpired(timeProvider).ShouldBeTrue();
     }
 
     [Fact]
-    public void IsTokenExpired_PastExpiryTime_ReturnsTrue()
+    public void IsTokenExpired_ExpiryInThePast_ReturnsTrue()
     {
-        var auth = new AuthDtoBuilder().AsExpired().Build();
+        var timeProvider = new FakeTimeProvider(FixedNow);
+        var auth = new AuthDto { ExpiryTime = FixedNow.UtcDateTime.AddSeconds(-1) };
 
-        auth.IsTokenExpired().ShouldBeTrue();
+        auth.IsTokenExpired(timeProvider).ShouldBeTrue();
     }
 
     [Fact]
-    public void IsTokenExpired_FutureExpiryTime_ReturnsFalse()
+    public void IsTokenExpired_ExpiryInTheFuture_ReturnsFalse()
     {
-        var auth = new AuthDtoBuilder().Build();
+        var timeProvider = new FakeTimeProvider(FixedNow);
+        var auth = new AuthDto { ExpiryTime = FixedNow.UtcDateTime.AddHours(1) };
 
-        auth.IsTokenExpired().ShouldBeFalse();
+        auth.IsTokenExpired(timeProvider).ShouldBeFalse();
     }
 
     [Fact]
     public void IsTokenExpired_NullExpiryTime_ReturnsTrue()
     {
-        var auth = new AuthDtoBuilder().Build();
-        auth.ExpiryTime = null;
+        var timeProvider = new FakeTimeProvider(FixedNow);
+        var auth = new AuthDto { ExpiryTime = null };
 
-        auth.IsTokenExpired().ShouldBeTrue();
+        auth.IsTokenExpired(timeProvider).ShouldBeTrue();
     }
 
     [Fact]
     public void IsTokenExpired_ExactlyNow_ReturnsTrue()
     {
-        var auth = new AuthDtoBuilder().Build();
-        auth.ExpiryTime = DateTime.UtcNow.AddMilliseconds(-1);
+        var timeProvider = new FakeTimeProvider(FixedNow);
+        var auth = new AuthDto { ExpiryTime = FixedNow.UtcDateTime };
 
-        auth.IsTokenExpired().ShouldBeTrue();
+        // >= means exactly now is also expired
+        auth.IsTokenExpired(timeProvider).ShouldBeTrue();
     }
 }

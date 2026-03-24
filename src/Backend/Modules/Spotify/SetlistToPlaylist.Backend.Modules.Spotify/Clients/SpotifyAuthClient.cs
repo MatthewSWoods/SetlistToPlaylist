@@ -14,14 +14,20 @@ public sealed class SpotifyAuthClient : ISpotifyAuthClient
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SpotifyAuthClient> _logger;
+    private readonly TimeProvider _timeProvider;
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public SpotifyAuthClient(HttpClient httpClient, IConfiguration configuration, ILogger<SpotifyAuthClient> logger)
+    public SpotifyAuthClient(
+        HttpClient httpClient,
+        IConfiguration configuration,
+        ILogger<SpotifyAuthClient> logger,
+        TimeProvider timeProvider)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Result<AuthDto>> ExchangeCodeAsync(string code, string codeVerifier, CancellationToken ct = default)
@@ -86,7 +92,7 @@ public sealed class SpotifyAuthClient : ISpotifyAuthClient
         if (authDto is null)
             return Result.Fail("Failed to deserialize Spotify token response");
 
-        authDto.SetExpiryTime();
+        authDto.SetExpiryTime(_timeProvider);
         return Result.Ok(authDto);
     }
 }
