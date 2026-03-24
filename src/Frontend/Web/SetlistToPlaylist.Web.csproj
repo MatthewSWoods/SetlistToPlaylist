@@ -16,12 +16,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\ServiceDefaults\SetlistToPlaylist.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Backend\Modules\Spotify\SetlistToPlaylist.Backend.Modules.Spotify.Abstractions\SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="13.1.0" />
-    <PackageReference Include="FluentResults" Version="4.0.0" />
-    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
   </ItemGroup>
 
 </Project>

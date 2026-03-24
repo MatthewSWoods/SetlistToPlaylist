@@ -4,18 +4,23 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UserSecretsId>a1b2c3d4-e5f6-7890-abcd-ef1234567890</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="9.3.1" />
+    <PackageReference Include="FluentResults" Version="4.0.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\ServiceDefaults\SetlistToPlaylist.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Modules\SetlistFm\SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions\SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="FluentResults" Version="4.0.0" />
-    <PackageReference Include="FluentValidation" Version="12.1.1" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+    <ProjectReference Include="..\Modules\SetlistFm\SetlistToPlaylist.Backend.Modules.SetlistFm\SetlistToPlaylist.Backend.Modules.SetlistFm.csproj" />
+    <ProjectReference Include="..\Modules\Spotify\SetlistToPlaylist.Backend.Modules.Spotify.Abstractions\SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.csproj" />
+    <ProjectReference Include="..\Modules\Spotify\SetlistToPlaylist.Backend.Modules.Spotify\SetlistToPlaylist.Backend.Modules.Spotify.csproj" />
   </ItemGroup>
 
 </Project>

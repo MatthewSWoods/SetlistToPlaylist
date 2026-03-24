@@ -8,11 +8,9 @@
 
   <ItemGroup>
     <PackageReference Include="FluentResults" Version="4.0.0" />
-    <PackageReference Include="FluentValidation" Version="12.1.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Api\SetlistToPlaylist.ApiService.csproj" />
     <ProjectReference Include="..\..\SetlistFm\SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions\SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.csproj" />
   </ItemGroup>
 
