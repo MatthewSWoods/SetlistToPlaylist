@@ -33,7 +33,7 @@ public sealed class SetlistFmClientTests
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Respond(HttpStatusCode.OK, "application/json", json);
 
-        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
+        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId, TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.Id.ShouldBe(SetlistId);
@@ -47,7 +47,7 @@ public sealed class SetlistFmClientTests
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Respond(HttpStatusCode.NotFound);
 
-        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
+        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId, TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
         result.Errors[0].Message.ShouldContain("not found");
@@ -63,7 +63,7 @@ public sealed class SetlistFmClientTests
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Respond(statusCode);
 
-        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
+        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId, TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
     }
@@ -75,7 +75,7 @@ public sealed class SetlistFmClientTests
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Throw(new HttpRequestException("Connection refused"));
 
-        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
+        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId, TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
         result.Errors[0].Message.ShouldContain("Failed to contact");
@@ -88,7 +88,7 @@ public sealed class SetlistFmClientTests
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Respond(HttpStatusCode.OK, "application/json", "null");
 
-        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
+        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId, TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
     }
@@ -106,7 +106,7 @@ public sealed class SetlistFmClientTests
         handler.When($"{BaseUrl}setlist/{SetlistId}")
             .Respond(HttpStatusCode.OK, "application/json", json);
 
-        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId);
+        var result = await BuildClient(handler).GetSetlistByIdAsync(SetlistId, TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
         var songs = result.Value.Sets?.Set?.SelectMany(s => s.Song ?? []).ToArray();

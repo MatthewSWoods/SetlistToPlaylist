@@ -1,3 +1,4 @@
+using Scalar.AspNetCore;
 using SetlistToPlaylist.ApiService.BackgroundServices;
 using SetlistToPlaylist.ApiService.Hubs;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.Clients;
@@ -66,7 +67,10 @@ app.UseHttpsRedirection();
 app.UseSession();
 
 if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
+    app.MapScalarApiReference(options => options.WithTitle("SetlistToPlaylist API"));
+}
 
 app.MapControllers();
 app.MapHub<PlaylistProgressHub>("/hubs/playlist");

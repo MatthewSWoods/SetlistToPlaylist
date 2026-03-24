@@ -35,6 +35,17 @@ app.UseAntiforgery();
 app.UseOutputCache();
 app.MapStaticAssets();
 
+// Proxy /auth/login to the API service — the browser needs to navigate to the real API
+// endpoint, not the Blazor Web host. Aspire service URLs are in configuration as
+// services:{name}:{scheme}:{index}.
+app.MapGet("/auth/login", (IConfiguration config) =>
+{
+    var apiUrl = config["services:apiservice:https:0"]
+              ?? config["services:apiservice:http:0"]
+              ?? "https://localhost:5001";
+    return Results.Redirect($"{apiUrl}/auth/login");
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

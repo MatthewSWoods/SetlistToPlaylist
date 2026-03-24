@@ -2,7 +2,6 @@ using FluentResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.Clients;
-using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.DTOs;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Services;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Tests.Builders;
 
@@ -34,7 +33,7 @@ public sealed class SetlistFmServiceTests
         _client.GetSetlistByIdAsync(expectedId, Arg.Any<CancellationToken>())
             .Returns(Result.Ok(setlist));
 
-        var result = await _sut.GetSetlistAsync(url);
+        var result = await _sut.GetSetlistAsync(url, TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.Id.ShouldBe(expectedId);
@@ -47,10 +46,10 @@ public sealed class SetlistFmServiceTests
     [InlineData("https://api.setlist.fm/rest/1.0/setlist/63eb7e6b")]   // API URL, not webpage
     public async Task GetSetlistAsync_NonSetlistFmHost_ReturnsFail(string url)
     {
-        var result = await _sut.GetSetlistAsync(url);
+        var result = await _sut.GetSetlistAsync(url, TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
-        await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, default);
+        await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -59,19 +58,19 @@ public sealed class SetlistFmServiceTests
     [InlineData("   ")]
     public async Task GetSetlistAsync_MalformedUrl_ReturnsFail(string url)
     {
-        var result = await _sut.GetSetlistAsync(url);
+        var result = await _sut.GetSetlistAsync(url, TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
-        await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, default);
+        await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task GetSetlistAsync_UrlWithoutIdPattern_ReturnsFail()
     {
-        var result = await _sut.GetSetlistAsync("https://www.setlist.fm/artist/radiohead.html");
+        var result = await _sut.GetSetlistAsync("https://www.setlist.fm/artist/radiohead.html", TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
-        await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, default);
+        await _client.DidNotReceiveWithAnyArgs().GetSetlistByIdAsync(default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -81,7 +80,7 @@ public sealed class SetlistFmServiceTests
             .Returns(Result.Fail("Setlist '63eb7e6b' not found on Setlist.fm"));
 
         var result = await _sut.GetSetlistAsync(
-            "https://www.setlist.fm/setlist/radiohead/2016/roundhouse-63eb7e6b.html");
+            "https://www.setlist.fm/setlist/radiohead/2016/roundhouse-63eb7e6b.html", TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
         result.Errors[0].Message.ShouldContain("not found");

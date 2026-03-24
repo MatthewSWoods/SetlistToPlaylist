@@ -62,7 +62,9 @@ public sealed class SpotifyApiClient : ISpotifyApiClient
         string songName, string artistName, string accessToken, CancellationToken ct = default)
     {
         // First pass: strict query with artist
-        var query = HttpUtility.UrlEncode($"track:{NormalizeSongName(songName)} artist:{artistName}");
+        var encodedName = Uri.EscapeDataString(NormalizeSongName(songName));
+        var encodedArtist = Uri.EscapeDataString(artistName);
+        var query = $"track:{encodedName}%20artist:{encodedArtist}";
         var uri = $"search?q={query}&type=track&limit=1";
 
         using var request1 = BuildGet(uri, accessToken);
@@ -78,7 +80,7 @@ public sealed class SpotifyApiClient : ISpotifyApiClient
         }
 
         // Second pass: without artist filter
-        var query2 = HttpUtility.UrlEncode($"track:{NormalizeSongName(songName)}");
+        var query2 = $"track:{encodedName}";
         var uri2 = $"search?q={query2}&type=track&limit=1";
 
         using var request2 = BuildGet(uri2, accessToken);

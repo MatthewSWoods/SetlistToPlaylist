@@ -19,13 +19,32 @@ public sealed class SetlistToPlaylistApiClient
         _httpClient = httpClient;
     }
 
+    /// <summary>Set by the frontend after claiming a transfer token. Added as X-Client-Key on all requests.</summary>
+    public string? ClientKey { get; set; }
+
+    public async Task<string?> ClaimAsync(string transferToken, CancellationToken ct = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "auth/claim",
+            new { transferToken },
+            JsonOptions, ct);
+
+        if (!response.IsSuccessStatusCode) return null;
+
+        var result = await response.Content.ReadFromJsonAsync<ClaimResponseDto>(JsonOptions, ct);
+        return result?.ClientKey;
+    }
+
     public async Task<GenerateResult> GeneratePlaylistAsync(
         string setlistUrl, string connectionId, bool isPublic, CancellationToken ct = default)
     {
-        var response = await _httpClient.PostAsJsonAsync(
-            "api/v1/setlist/generate",
-            new { setlistUrl, connectionId, isPublic },
-            JsonOptions, ct);
+        var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/setlist/generate")
+        {
+            Content = JsonContent.Create(new { setlistUrl, connectionId, isPublic }, options: JsonOptions)
+        };
+        AddClientKeyHeader(request);
+
+        var response = await _httpClient.SendAsync(request, ct);
 
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             return new GenerateResult { NeedsAuth = true };
@@ -48,8 +67,14 @@ public sealed class SetlistToPlaylistApiClient
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<AuthStatusDto>("auth/status", JsonOptions, ct);
-            return response?.Authenticated ?? false;
+            var request = new HttpRequestMessage(HttpMethod.Get, "auth/status");
+            AddClientKeyHeader(request);
+
+            var response = await _httpClient.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return false;
+
+            var result = await response.Content.ReadFromJsonAsync<AuthStatusDto>(JsonOptions, ct);
+            return result?.Authenticated ?? false;
         }
         catch
         {
@@ -57,8 +82,15 @@ public sealed class SetlistToPlaylistApiClient
         }
     }
 
+    private void AddClientKeyHeader(HttpRequestMessage request)
+    {
+        if (ClientKey is not null)
+            request.Headers.TryAddWithoutValidation("X-Client-Key", ClientKey);
+    }
+
     private sealed record GeneratePlaylistStartedDto(string? PlaylistId, string? PlaylistUrl);
     private sealed record AuthStatusDto([property: JsonPropertyName("authenticated")] bool Authenticated);
+    private sealed record ClaimResponseDto([property: JsonPropertyName("clientKey")] string? ClientKey);
 }
 
 public sealed class GenerateResult

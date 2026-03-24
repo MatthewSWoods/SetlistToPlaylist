@@ -28,8 +28,17 @@ public static class Extensions
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Turn on resilience by default
-            http.AddStandardResilienceHandler();
+            // Turn on resilience by default.
+            // The default AttemptTimeout (10 s) is too short for cold-start service-discovery
+            // resolution + TLS handshake on first contact, which causes TaskCanceledException
+            // in health checks and other early requests.
+            // Polly requires: CircuitBreaker.SamplingDuration >= 2 × AttemptTimeout.Timeout
+            // Setting AttemptTimeout to 15 s satisfies the default SamplingDuration of 30 s.
+            http.AddStandardResilienceHandler(options =>
+            {
+                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(15);
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+            });
 
             // Turn on service discovery by default
             http.AddServiceDiscovery();

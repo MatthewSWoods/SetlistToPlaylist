@@ -1,10 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using SetlistToPlaylist.ApiService.Contracts.Core;
 using SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.Clients;
-using SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.DTOs;
 
 namespace SetlistToPlaylist.ApiService.Controllers;
 
@@ -15,6 +14,7 @@ public sealed class AuthController : ControllerBase
     private const string PkceStateKeyPrefix = "pkce_state:";
     private const string PkceVerifierKeyPrefix = "pkce_verifier:";
     private const string SpotifyAuthKeyPrefix = "spotify_auth:";
+    private const string TransferTokenKeyPrefix = "transfer_token:";
 
     private readonly ISpotifyAuthClient _authClient;
     private readonly IDistributedCache _cache;
@@ -130,16 +130,57 @@ public sealed class AuthController : ControllerBase
         // Ensure session cookie is committed
         HttpContext.Session.SetString("authenticated", "true");
 
+        // Generate a short-lived one-time transfer token so the frontend can claim the clientKey
+        // without relying on the browser's session cookie crossing origins.
+        var transferToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace("+", "-").Replace("/", "_").Replace("=", string.Empty);
+        var transferExpiry = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2)
+        };
+        await _cache.SetStringAsync(
+            $"{TransferTokenKeyPrefix}{transferToken}", sessionId, transferExpiry, ct);
+
         _logger.LogInformation("Spotify authentication successful for session {SessionId}", sessionId);
-        return Redirect("/");
+
+        var frontendUrl = _configuration["Frontend:Url"] ?? "https://localhost:5002";
+        return Redirect($"{frontendUrl}/?at={Uri.EscapeDataString(transferToken)}");
+    }
+
+    [HttpPost("claim")]
+    public async Task<IActionResult> Claim([FromBody] ClaimRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(request.TransferToken))
+            return BadRequest("Transfer token is required");
+
+        var clientKey = await _cache.GetStringAsync(
+            $"{TransferTokenKeyPrefix}{request.TransferToken}", ct);
+        if (clientKey is null)
+        {
+            _logger.LogWarning("Transfer token not found or expired");
+            return BadRequest("Invalid or expired transfer token");
+        }
+
+        await _cache.RemoveAsync($"{TransferTokenKeyPrefix}{request.TransferToken}", ct);
+        return Ok(new { clientKey });
     }
 
     [HttpGet("status")]
     public async Task<IActionResult> Status(CancellationToken ct)
     {
-        await HttpContext.Session.LoadAsync(ct);
-        var sessionId = HttpContext.Session.Id;
-        var token = await _cache.GetStringAsync($"{SpotifyAuthKeyPrefix}{sessionId}", ct);
+        string clientKey;
+        var headerKey = HttpContext.Request.Headers["X-Client-Key"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(headerKey))
+        {
+            clientKey = headerKey;
+        }
+        else
+        {
+            await HttpContext.Session.LoadAsync(ct);
+            clientKey = HttpContext.Session.Id;
+        }
+
+        var token = await _cache.GetStringAsync($"{SpotifyAuthKeyPrefix}{clientKey}", ct);
         return Ok(new { authenticated = token is not null });
     }
 

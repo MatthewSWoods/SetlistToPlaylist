@@ -38,7 +38,7 @@ public sealed class SpotifyServiceTests
     {
         SetCachedToken(null);
 
-        var result = await _sut.GetCurrentUserIdAsync(SessionId);
+        var result = await _sut.GetCurrentUserIdAsync(SessionId, TestContext.Current.CancellationToken);
 
         result.IsFailed.ShouldBeTrue();
         result.Errors[0].Message.ShouldContain("No Spotify token");
@@ -51,7 +51,7 @@ public sealed class SpotifyServiceTests
         _apiClient.GetCurrentUserAsync(AccessToken, Arg.Any<CancellationToken>())
             .Returns(Result.Ok(new UserDto { Id = "spotify-user-123" }));
 
-        var result = await _sut.GetCurrentUserIdAsync(SessionId);
+        var result = await _sut.GetCurrentUserIdAsync(SessionId, TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.ShouldBe("spotify-user-123");
@@ -168,7 +168,7 @@ public sealed class SpotifyServiceTests
         events.ShouldHaveSingleItem();
         events[0].Type.ShouldBe("error");
         await _apiClient.DidNotReceiveWithAnyArgs()
-            .SearchTrackAsync(default!, default!, default!, default);
+            .SearchTrackAsync(default!, default!, default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public sealed class SpotifyServiceTests
         (completed.TrackUris ?? []).ShouldBeEmpty();
         (completed.FailedTracks ?? []).ShouldBeEmpty();
         await _apiClient.DidNotReceiveWithAnyArgs()
-            .AddTracksToPlaylistAsync(default!, default!, default!, default);
+            .AddTracksToPlaylistAsync(default!, default!, default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]

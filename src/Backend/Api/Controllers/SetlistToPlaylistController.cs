@@ -43,8 +43,17 @@ public sealed class SetlistToPlaylistController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.ConnectionId))
             return BadRequest(new { error = "ConnectionId is required" });
 
-        await HttpContext.Session.LoadAsync(ct);
-        var sessionId = HttpContext.Session.Id;
+        string sessionId;
+        var clientKeyHeader = HttpContext.Request.Headers["X-Client-Key"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(clientKeyHeader))
+        {
+            sessionId = clientKeyHeader;
+        }
+        else
+        {
+            await HttpContext.Session.LoadAsync(ct);
+            sessionId = HttpContext.Session.Id;
+        }
 
         var token = await _cache.GetStringAsync($"{SpotifyAuthKeyPrefix}{sessionId}", ct);
         if (token is null)

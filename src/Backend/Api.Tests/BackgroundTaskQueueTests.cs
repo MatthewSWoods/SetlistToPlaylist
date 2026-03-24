@@ -14,8 +14,8 @@ public sealed class BackgroundTaskQueueTests
         var queue = new BackgroundTaskQueue();
         var job = MakeJob();
 
-        await queue.EnqueueAsync(job);
-        var dequeued = await queue.DequeueAsync(CancellationToken.None);
+        await queue.EnqueueAsync(job, TestContext.Current.CancellationToken);
+        var dequeued = await queue.DequeueAsync(TestContext.Current.CancellationToken);
 
         dequeued.ShouldBe(job);
     }
@@ -28,13 +28,13 @@ public sealed class BackgroundTaskQueueTests
         var job2 = MakeJob("playlist-2");
         var job3 = MakeJob("playlist-3");
 
-        await queue.EnqueueAsync(job1);
-        await queue.EnqueueAsync(job2);
-        await queue.EnqueueAsync(job3);
+        await queue.EnqueueAsync(job1, TestContext.Current.CancellationToken);
+        await queue.EnqueueAsync(job2, TestContext.Current.CancellationToken);
+        await queue.EnqueueAsync(job3, TestContext.Current.CancellationToken);
 
-        var first = await queue.DequeueAsync(CancellationToken.None);
-        var second = await queue.DequeueAsync(CancellationToken.None);
-        var third = await queue.DequeueAsync(CancellationToken.None);
+        var first = await queue.DequeueAsync(TestContext.Current.CancellationToken);
+        var second = await queue.DequeueAsync(TestContext.Current.CancellationToken);
+        var third = await queue.DequeueAsync(TestContext.Current.CancellationToken);
 
         first.PlaylistId.ShouldBe("playlist-1");
         second.PlaylistId.ShouldBe("playlist-2");
@@ -48,11 +48,11 @@ public sealed class BackgroundTaskQueueTests
         var job = MakeJob();
 
         // Start dequeue before enqueue — should block until item arrives
-        var dequeueTask = queue.DequeueAsync(CancellationToken.None).AsTask();
+        var dequeueTask = queue.DequeueAsync(TestContext.Current.CancellationToken).AsTask();
 
         dequeueTask.IsCompleted.ShouldBeFalse();
 
-        await queue.EnqueueAsync(job);
+        await queue.EnqueueAsync(job, TestContext.Current.CancellationToken);
         var result = await dequeueTask;
 
         result.ShouldBe(job);

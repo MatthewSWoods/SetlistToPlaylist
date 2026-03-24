@@ -6,7 +6,8 @@ var apiService = builder.AddProject<Projects.SetlistToPlaylist_ApiService>("apis
     .WithReference(redisCache)
     .WaitFor(redisCache)
     .WithHttpsEndpoint(port: 5001, name: "apiservice-https")
-    .WithHttpHealthCheck("/health");
+    .WithHttpHealthCheck("/health")
+    .WithUrl("https://localhost:5001/scalar/v1", "Scalar API Reference");
 
 builder.AddProject<Projects.SetlistToPlaylist_Web>("webfrontend")
     .WithExternalHttpEndpoints()
@@ -14,7 +15,8 @@ builder.AddProject<Projects.SetlistToPlaylist_Web>("webfrontend")
     .WithReference(redisCache)
     .WaitFor(redisCache)
     .WithReference(apiService)
-    .WaitFor(apiService);
+    .WaitFor(apiService)
+    .WithHttpsEndpoint(port: 5002, name: "webfrontend-https");
 
 
 builder.Build().Run();
