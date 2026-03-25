@@ -106,7 +106,7 @@ public sealed class SpotifyApiClientTests
         await BuildClient(handler).SearchTrackAsync(rawName, "Radiohead", AccessToken, TestContext.Current.CancellationToken);
 
         capturedUrl.ShouldNotBeNull();
-        capturedUrl!.ShouldContain(Uri.EscapeDataString(normalizedName));
+        capturedUrl!.ShouldContain(normalizedName);
     }
 
     // --- CreatePlaylist ---

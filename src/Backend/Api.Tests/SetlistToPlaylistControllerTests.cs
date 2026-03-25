@@ -11,6 +11,7 @@ using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.DTOs;
 using SetlistToPlaylist.Backend.Modules.SetlistFm.Abstractions.Services;
 using SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.DTOs;
 using SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.Services;
+using System.Text;
 
 namespace SetlistToPlaylist.Backend.ApiService.Tests;
 
@@ -77,8 +78,8 @@ public sealed class SetlistToPlaylistControllerTests
     [Fact]
     public async Task GeneratePlaylistAsync_NoTokenInCache_ReturnsUnauthorized()
     {
-        _cache.GetStringAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((string?)null);
+        _cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<byte[]?>(null));
 
         var request = new GeneratePlaylistRequest
         {
@@ -216,11 +217,12 @@ public sealed class SetlistToPlaylistControllerTests
 
     // --- Helpers ---
 
-    private void SetTokenInCache(string tokenJson)
+    private void SetTokenInCache(string? tokenJson)
     {
-        _cache.GetStringAsync(
+        byte[]? bytes = tokenJson is null ? null : Encoding.UTF8.GetBytes(tokenJson);
+        _cache.GetAsync(
                 Arg.Is<string>(k => k.StartsWith("spotify_auth:")),
                 Arg.Any<CancellationToken>())
-            .Returns(tokenJson);
+            .Returns(Task.FromResult(bytes));
     }
 }

@@ -26,7 +26,7 @@ public sealed record PlaylistProgressEvent
         new() { Type = "track_failed", SongName = songName, Current = current, Total = total };
 
     public static PlaylistProgressEvent Completed(PlaylistDto playlist, string[] trackUris, string[] failedTracks) =>
-        new() { Type = "completed", Playlist = playlist, TrackUris = trackUris, FailedTracks = failedTracks };
+        new() { Type = "completed", Playlist = playlist, TrackUris = trackUris, FailedTracks = failedTracks, Total = trackUris.Length + failedTracks.Length };
 
     public static PlaylistProgressEvent Error(string message) =>
         new() { Type = "error", ErrorMessage = message };
