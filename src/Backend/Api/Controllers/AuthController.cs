@@ -51,6 +51,10 @@ public sealed class AuthController : ControllerBase
         await _cache.SetStringAsync($"{PkceStateKeyPrefix}{sessionId}", state, expiry, ct);
         await _cache.SetStringAsync($"{PkceVerifierKeyPrefix}{sessionId}", codeVerifier, expiry, ct);
 
+        // Set a session marker to ensure the session cookie is committed to the response.
+        // This ensures the browser will include the session cookie in the redirect back from Spotify.
+        HttpContext.Session.SetString("_oauth_flow", "initiated");
+
         var clientId = _configuration["Spotify:ClientId"]
             ?? throw new InvalidOperationException("Spotify:ClientId is not configured");
         var callbackUrl = _configuration["Spotify:CallbackUrl"]
