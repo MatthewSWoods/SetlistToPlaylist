@@ -1,7 +1,256 @@
-﻿@page "/"
+@page "/"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.SignalR.Client
+@using SetlistToPlaylist.Backend.Modules.Spotify.Abstractions.Models
+@using SetlistToPlaylist.Web.Clients
+@inject SetlistToPlaylistApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IHttpMessageHandlerFactory MessageHandlerFactory
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Setlist to Playlist</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="login-btn-area">
+    @if (!_initializing && !_isAuthenticated)
+    {
+        <a href="/auth/login" class="login-btn">Login with Spotify</a>
+    }
+    else if (_isAuthenticated)
+    {
+        <span class="logged-in-label">&#10003; Connected to Spotify</span>
+    }
+</div>
 
-Welcome to your new app.
+<div class="stp-container">
+    @if (_initializing)
+    {
+        <div class="input-card">
+            <p>Loading&hellip;</p>
+        </div>
+    }
+    else if (!_isAuthenticated)
+    {
+        <div class="input-card">
+            <h2>Convert a Setlist.fm setlist into a Spotify playlist</h2>
+            <p>Connect your Spotify account to get started.</p>
+        </div>
+    }
+    else
+    {
+        <div class="input-card">
+            <h2>Enter a Setlist.fm URL</h2>
+            <input type="url"
+                   @bind="_setlistUrl"
+                   placeholder="https://www.setlist.fm/setlist/..."
+                   disabled="@_isGenerating"
+                   class="url-input" />
+            <button @onclick="GenerateAsync"
+                    disabled="@(_isGenerating || string.IsNullOrWhiteSpace(_setlistUrl))"
+                    class="generate-btn">
+                @(_isGenerating ? "Generating\u2026" : "Generate Playlist")
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-box">@_errorMessage</div>
+    }
+
+    @if (_isGenerating || _progressEvents.Count > 0)
+    {
+        <div class="progress-area">
+            @if (_total > 0)
+            {
+                <div class="progress-label">@_current / @_total tracks processed</div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" style="width: @ProgressPercent%;"></div>
+                </div>
+            }
+            else if (_isGenerating)
+            {
+                <p class="progress-hint">Fetching setlist and creating playlist&hellip;</p>
+            }
+
+            @if (_progressEvents.Count > 0)
+            {
+                <ul class="track-list">
+                    @foreach (var evt in _progressEvents)
+                    {
+                        <li class="@(evt.Type == "track_found" ? "track-found" : "track-failed")">
+                            @if (evt.Type == "track_found")
+                            {
+                                <span>&#10003; @evt.SongName</span>
+                            }
+                            else
+                            {
+                                <span>&#8211; @evt.SongName</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+
+    @if (_completedEvent is not null && _playlistId is not null)
+    {
+        <div class="playlist-result">
+            <iframe
+                title="Spotify Embed: Playlist"
+                src="https://open.spotify.com/embed/playlist/@_playlistId?utm_source=generator&theme=0"
+                width="100%"
+                height="500"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy">
+            </iframe>
+        </div>
+    }
+
+    @if (_completedEvent?.FailedTracks?.Length > 0)
+    {
+        <div class="failed-tracks">
+            <h3>Failed to add the following tracks:</h3>
+            <ul>
+                @foreach (var track in _completedEvent.FailedTracks)
+                {
+                    <li>@track</li>
+                }
+            </ul>
+            <p class="failed-note">Please add these tracks manually to your playlist.</p>
+        </div>
+    }
+</div>
+
+@code {
+    private HubConnection? _hubConnection;
+    private string _setlistUrl = string.Empty;
+    private string? _clientKey;
+    private bool _isAuthenticated;
+    private bool _isGenerating;
+    private bool _initializing = true;
+    private string? _errorMessage;
+    private string? _playlistId;
+
+    private int _current;
+    private int _total;
+    private readonly List<PlaylistProgressEvent> _progressEvents = [];
+    private PlaylistProgressEvent? _completedEvent;
+
+    private int ProgressPercent => _total == 0 ? 0 : (int)Math.Round(_current * 100.0 / _total);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Build and start the hub here (not in OnInitializedAsync) so it only runs in the
+        // interactive browser circuit, not during SSR pre-render where HTTP calls can fail.
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl("https://apiservice/hubs/playlist", options =>
+            {
+                options.HttpMessageHandlerFactory = _ => MessageHandlerFactory.CreateHandler("apiservice-hub");
+            })
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<PlaylistProgressEvent>("ReceiveProgress", OnProgressReceived);
+        await _hubConnection.StartAsync();
+
+        // Try to pick up a transfer token from the URL (?at=...) after Spotify OAuth callback.
+        var transferToken = await JS.InvokeAsync<string?>("authHelpers.getTransferToken");
+        if (!string.IsNullOrEmpty(transferToken))
+        {
+            await JS.InvokeVoidAsync("authHelpers.clearTransferToken");
+            _clientKey = await ApiClient.ClaimAsync(transferToken);
+            if (!string.IsNullOrEmpty(_clientKey))
+                await JS.InvokeVoidAsync("authHelpers.setClientKey", _clientKey);
+        }
+
+        // Fall back to a previously stored client key in sessionStorage.
+        if (string.IsNullOrEmpty(_clientKey))
+            _clientKey = await JS.InvokeAsync<string?>("authHelpers.getClientKey");
+
+        if (!string.IsNullOrEmpty(_clientKey))
+        {
+            ApiClient.ClientKey = _clientKey;
+            _isAuthenticated = await ApiClient.IsAuthenticatedAsync();
+        }
+
+        _initializing = false;
+        StateHasChanged();
+    }
+
+    private async Task GenerateAsync()
+    {
+        _errorMessage = null;
+        _playlistId = null;
+        _progressEvents.Clear();
+        _completedEvent = null;
+        _current = 0;
+        _total = 0;
+        _isGenerating = true;
+
+        if (!string.IsNullOrEmpty(_clientKey))
+            ApiClient.ClientKey = _clientKey;
+
+        var connectionId = _hubConnection?.ConnectionId ?? string.Empty;
+        var result = await ApiClient.GeneratePlaylistAsync(_setlistUrl, connectionId, isPublic: false);
+
+        if (result.NeedsAuth)
+        {
+            Navigation.NavigateTo("/auth/login", forceLoad: true);
+            return;
+        }
+
+        if (result.Error is not null)
+        {
+            _errorMessage = result.Error;
+            _isGenerating = false;
+            StateHasChanged();
+            return;
+        }
+
+        _playlistId = result.PlaylistId;
+        StateHasChanged();
+        // _isGenerating stays true until "completed" or "error" arrives via SignalR
+    }
+
+    private void OnProgressReceived(PlaylistProgressEvent evt)
+    {
+        switch (evt.Type)
+        {
+            case "track_found":
+            case "track_failed":
+                _progressEvents.Add(evt);
+                _current = evt.Current;
+                _total = evt.Total;
+                break;
+            case "completed":
+                _completedEvent = evt;
+                _isGenerating = false;
+                if (_playlistId is null && evt.Playlist is not null)
+                    _playlistId = ExtractPlaylistId(evt.Playlist.ExternalUrls.Spotify);
+                break;
+            case "error":
+                _errorMessage = evt.ErrorMessage ?? "An unknown error occurred";
+                _isGenerating = false;
+                break;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private static string? ExtractPlaylistId(string? spotifyUrl)
+    {
+        if (string.IsNullOrEmpty(spotifyUrl)) return null;
+        var parts = spotifyUrl.Split('/');
+        return parts.Length > 0 ? parts[^1].Split('?')[0] : null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+            await _hubConnection.DisposeAsync();
+    }
+}
