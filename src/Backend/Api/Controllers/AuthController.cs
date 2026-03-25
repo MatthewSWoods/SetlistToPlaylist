@@ -39,8 +39,8 @@ public sealed class AuthController : ControllerBase
     [HttpGet("login")]
     public async Task<IActionResult> Login(CancellationToken ct)
     {
-        await HttpContext.Session.LoadAsync(ct);
-        var sessionId = HttpContext.Session.Id;
+        //await HttpContext.Session.LoadAsync(ct);
+        //var sessionId = HttpContext.Session.Id;
 
         var codeVerifier = GenerateCodeVerifier();
         var codeChallenge = ComputeCodeChallenge(codeVerifier);
@@ -48,12 +48,34 @@ public sealed class AuthController : ControllerBase
             .Replace("+", "-").Replace("/", "_").Replace("=", string.Empty);
 
         var expiry = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) };
-        await _cache.SetStringAsync($"{PkceStateKeyPrefix}{sessionId}", state, expiry, ct);
-        await _cache.SetStringAsync($"{PkceVerifierKeyPrefix}{sessionId}", codeVerifier, expiry, ct);
+        try
+        {
+            await _cache.SetStringAsync($"{PkceStateKeyPrefix}{state}", state, expiry, ct);
+            _logger.LogDebug("State stored in cache: key={CacheKey}", $"{PkceStateKeyPrefix}{state}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to store state in cache");
+            throw;
+        }
 
-        // Set a session marker to ensure the session cookie is committed to the response.
-        // This ensures the browser will include the session cookie in the redirect back from Spotify.
-        HttpContext.Session.SetString("_oauth_flow", "initiated");
+        try
+        {
+            await _cache.SetStringAsync($"{PkceVerifierKeyPrefix}{state}", codeVerifier, expiry, ct);
+            _logger.LogDebug("Code verifier stored in cache: key={CacheKey}", $"{PkceVerifierKeyPrefix}{state}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to store code verifier in cache");
+            throw;
+        }
+
+        //// Set a session marker to ensure the session cookie is committed to the response.
+        //// This ensures the browser will include the session cookie in the redirect back from Spotify.
+        //HttpContext.Session.SetString("_oauth_flow", "initiated");
+
+        //// Ensure the session is committed immediately
+        //await HttpContext.Session.CommitAsync(ct);
 
         var clientId = _configuration["Spotify:ClientId"]
             ?? throw new InvalidOperationException("Spotify:ClientId is not configured");
@@ -71,7 +93,8 @@ public sealed class AuthController : ControllerBase
             $"&state={Uri.EscapeDataString(state)}" +
             $"&scope={Uri.EscapeDataString(scopes)}";
 
-        _logger.LogInformation("Initiating Spotify PKCE login for session {SessionId}", sessionId);
+        _logger.LogDebug("Login: state={State}, codeChallenge={CodeChallenge}", 
+            state, codeChallenge);
         return Redirect(spotifyAuthUrl);
     }
 
@@ -91,26 +114,31 @@ public sealed class AuthController : ControllerBase
         if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
             return BadRequest("Missing code or state parameter");
 
-        await HttpContext.Session.LoadAsync(ct);
-        var sessionId = HttpContext.Session.Id;
+        // Retrieve PKCE data keyed by state (not session)
+        var storedState = await _cache.GetStringAsync($"{PkceStateKeyPrefix}{state}", ct);
+        _logger.LogDebug("Callback: incomingState={IncomingState}, storedState={StoredState}",
+            state, storedState ?? "NOT_FOUND");
 
-        var storedState = await _cache.GetStringAsync($"{PkceStateKeyPrefix}{sessionId}", ct);
         if (storedState != state)
         {
-            _logger.LogWarning("OAuth state mismatch for session {SessionId}", sessionId);
+            _logger.LogWarning("OAuth state mismatch");
             return BadRequest("Invalid OAuth state — possible CSRF attempt");
         }
 
-        var codeVerifier = await _cache.GetStringAsync($"{PkceVerifierKeyPrefix}{sessionId}", ct);
+        var codeVerifier = await _cache.GetStringAsync($"{PkceVerifierKeyPrefix}{state}", ct);
         if (string.IsNullOrEmpty(codeVerifier))
         {
-            _logger.LogWarning("PKCE verifier not found for session {SessionId}", sessionId);
+            _logger.LogWarning("PKCE verifier not found");
             return BadRequest("PKCE verifier not found — please try logging in again");
         }
 
         // Clean up PKCE entries
-        await _cache.RemoveAsync($"{PkceStateKeyPrefix}{sessionId}", ct);
-        await _cache.RemoveAsync($"{PkceVerifierKeyPrefix}{sessionId}", ct);
+        await _cache.RemoveAsync($"{PkceStateKeyPrefix}{state}", ct);
+        await _cache.RemoveAsync($"{PkceVerifierKeyPrefix}{state}", ct);
+
+        // Load session to create/maintain the session cookie for authenticated requests
+        await HttpContext.Session.LoadAsync(ct);
+        var sessionId = HttpContext.Session.Id;
 
         var tokenResult = await _authClient.ExchangeCodeAsync(code, codeVerifier, ct);
         if (tokenResult.IsFailed)
