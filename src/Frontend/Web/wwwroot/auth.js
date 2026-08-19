@@ -6,5 +6,6 @@ window.authHelpers = {
         history.replaceState(null, '', url.pathname + (url.search && url.search !== '?' ? url.search : ''));
     },
     getClientKey: () => sessionStorage.getItem('clientKey'),
-    setClientKey: (key) => sessionStorage.setItem('clientKey', key)
+    setClientKey: (key) => sessionStorage.setItem('clientKey', key),
+    clearClientKey: () => sessionStorage.removeItem('clientKey')
 };

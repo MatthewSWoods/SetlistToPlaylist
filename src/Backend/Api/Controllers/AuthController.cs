@@ -216,6 +216,29 @@ public sealed class AuthController : ControllerBase
         return Ok(new { authenticated = token is not null });
     }
 
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(CancellationToken ct)
+    {
+        string clientKey;
+        var headerKey = HttpContext.Request.Headers["X-Client-Key"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(headerKey))
+        {
+            clientKey = headerKey;
+        }
+        else
+        {
+            await HttpContext.Session.LoadAsync(ct);
+            clientKey = HttpContext.Session.Id;
+        }
+
+        // Clear the Spotify authentication token for this client/session
+        await _cache.RemoveAsync($"{SpotifyAuthKeyPrefix}{clientKey}", ct);
+
+        _logger.LogInformation("User logged out for clientKey {ClientKey}", clientKey);
+
+        return Ok(new { success = true });
+    }
+
     private static string GenerateCodeVerifier()
     {
         var bytes = RandomNumberGenerator.GetBytes(64);

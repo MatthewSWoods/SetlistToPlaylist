@@ -18,7 +18,7 @@
     }
     else if (_isAuthenticated)
     {
-        <span class="logged-in-label">&#10003; Connected to Spotify</span>
+        <button @onclick="LogoutAsync" class="logout-btn">Logout</button>
     }
 </div>
 
@@ -144,8 +144,19 @@
     {
         if (!firstRender) return;
 
-        // Build and start the hub here (not in OnInitializedAsync) so it only runs in the
-        // interactive browser circuit, not during SSR pre-render where HTTP calls can fail.
+        // Show UI immediately
+        _initializing = false;
+        StateHasChanged();
+
+        // Start hub connection in background (fire and forget)
+        _ = InitializeHubConnectionAsync();
+
+        // Load authentication in background (fire and forget)
+        _ = LoadAuthenticationAsync();
+    }
+
+    private async Task InitializeHubConnectionAsync()
+    {
         _hubConnection = new HubConnectionBuilder()
             .WithUrl("https://apiservice/hubs/playlist", options =>
             {
@@ -156,7 +167,10 @@
 
         _hubConnection.On<PlaylistProgressEvent>("ReceiveProgress", OnProgressReceived);
         await _hubConnection.StartAsync();
+    }
 
+    private async Task LoadAuthenticationAsync()
+    {
         // Try to pick up a transfer token from the URL (?at=...) after Spotify OAuth callback.
         var transferToken = await JS.InvokeAsync<string?>("authHelpers.getTransferToken");
         if (!string.IsNullOrEmpty(transferToken))
@@ -175,10 +189,8 @@
         {
             ApiClient.ClientKey = _clientKey;
             _isAuthenticated = await ApiClient.IsAuthenticatedAsync();
+            await InvokeAsync(StateHasChanged);
         }
-
-        _initializing = false;
-        StateHasChanged();
     }
 
     private async Task GenerateAsync()
@@ -246,6 +258,15 @@
         if (string.IsNullOrEmpty(spotifyUrl)) return null;
         var parts = spotifyUrl.Split('/');
         return parts.Length > 0 ? parts[^1].Split('?')[0] : null;
+    }
+
+    private async Task LogoutAsync()
+    {
+        await ApiClient.LogoutAsync();
+        // Clear the client key from session storage
+        await JS.InvokeVoidAsync("authHelpers.clearClientKey");
+        // Refresh the page to reset the authentication state
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 
     public async ValueTask DisposeAsync()

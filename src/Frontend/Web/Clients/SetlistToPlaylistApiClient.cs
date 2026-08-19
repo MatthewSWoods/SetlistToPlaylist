@@ -82,6 +82,22 @@ public sealed class SetlistToPlaylistApiClient
         }
     }
 
+    public async Task<bool> LogoutAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "auth/logout");
+            AddClientKeyHeader(request);
+
+            var response = await _httpClient.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private void AddClientKeyHeader(HttpRequestMessage request)
     {
         if (ClientKey is not null)

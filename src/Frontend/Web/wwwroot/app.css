@@ -17,7 +17,8 @@ html, body {
 .stp-main {
     display: flex;
     justify-content: center;
-    min-height: 100vh;
+    width: 100%;
+    padding-top: 0;
 }
 
 /* Login button area — fixed top right */
@@ -47,6 +48,23 @@ html, body {
     text-decoration: none;
 }
 
+.logout-btn {
+    background-color: rgba(200, 50, 50, 0.8);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: inline-block;
+}
+
+.logout-btn:hover {
+    background-color: #d32f2f;
+    color: #fff;
+}
+
 .logged-in-label {
     font-size: 14px;
     color: #4CAF50;
@@ -56,7 +74,7 @@ html, body {
 .stp-container {
     width: 90%;
     max-width: 800px;
-    margin: 60px auto 40px;
+    margin: 20px auto 40px;
     display: flex;
     flex-direction: column;
     align-items: center;
